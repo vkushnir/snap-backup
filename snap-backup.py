@@ -86,6 +86,9 @@ def get_options():
     group_mysql.add_argument('--mysql-flush', action='store_true', default=False, dest='mysql_flush',
                              help="flush mysql tables with read lock before making snapshot\n"
                                   "user must have RELOAD privileges")
+    group_mysql.add_argument('--mysql-purge', dest='mysql_purge',
+                             help="purge binary logs to specified date before making snapshot\n"
+                                  "user must have SUPER privileges")
     group_mysql.add_argument('--mysql-user', default='flush', dest='mysql_user',
                              help="mysql user name")
     group_mysql.add_argument('--mysql-password', default='flush', dest='mysql_pass',
@@ -146,6 +149,9 @@ def make_mysql_snapshot(options):
         try:
             cur = db.cursor()
             cur.execute("FLUSH TABLES WITH READ LOCK")
+            if options.mysql_purge is not None:
+                print "purge binary logs before '{}'".format(options.mysql_purge)
+                cur.execute("""PURGE BINARY LOGS BEFORE %s""", (options.mysql_purge,))
             make_snapshot(options)
             cur.execute("UNLOCK TABLES")
         finally:
